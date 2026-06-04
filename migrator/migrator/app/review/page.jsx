@@ -38,11 +38,13 @@ export default function ReviewPage() {
       cSnap.forEach(d => { catMap[d.id] = d.data().name })
       setCategories(catMap)
 
+      const isCloudinary = url => url && (url.includes('cloudinary.com') || url.includes('res.cloudinary.com'))
+
       const withCloud = qSnap.docs
         .map(d => ({ id: d.id, ...d.data() }))
         .filter(q =>
-          q.mediaUrl?.includes('cloudinary.com') ||
-          q.answerMediaUrl?.includes('cloudinary.com')
+          isCloudinary(q.mediaUrl) ||
+          (isCloudinary(q.answerMediaUrl) && q.answerMediaType === 'video')
         )
       setQuestions(withCloud)
       setLoading(false)
@@ -80,9 +82,9 @@ export default function ReviewPage() {
 
       try {
         const updates = {}
-        if (q.mediaUrl?.includes('cloudinary.com'))
+        if (q.mediaUrl && (q.mediaUrl.includes('cloudinary.com') || q.mediaUrl.includes('res.cloudinary.com')))
           updates.mediaUrl = await migrateFile(q.mediaUrl)
-        if (q.answerMediaUrl?.includes('cloudinary.com'))
+        if (q.answerMediaUrl && q.answerMediaType === 'video' && (q.answerMediaUrl.includes('cloudinary.com') || q.answerMediaUrl.includes('res.cloudinary.com')))
           updates.answerMediaUrl = await migrateFile(q.answerMediaUrl)
 
         await updateDoc(doc(db, 'questions', q.id), updates)
@@ -107,7 +109,6 @@ export default function ReviewPage() {
 
   return (
     <div style={S.page} dir="rtl">
-      {/* header */}
       <div style={S.topBar}>
         <h1 style={S.h1}>🎬 نقل الفيديوهات — Cloudinary → Bunny CDN</h1>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -126,14 +127,12 @@ export default function ReviewPage() {
         )}
 
         {questions.map(q => {
-          const dec    = decisions[q.id] || 'pending'
-          const hasQV  = q.mediaUrl?.includes('cloudinary.com')
-          const hasAV  = q.answerMediaUrl?.includes('cloudinary.com')
+          const dec   = decisions[q.id] || 'pending'
+          const hasQV = q.mediaUrl && (q.mediaUrl.includes('cloudinary.com') || q.mediaUrl.includes('res.cloudinary.com'))
+          const hasAV = q.answerMediaUrl && q.answerMediaType === 'video' && (q.answerMediaUrl.includes('cloudinary.com') || q.answerMediaUrl.includes('res.cloudinary.com'))
           return (
             <div key={q.id} style={{ ...S.card, borderColor: dec === 'approved' ? '#1D9E75' : dec === 'rejected' ? '#D85A30' : '#D8EAF8', borderWidth: dec !== 'pending' ? 2 : 1 }}>
               <div style={S.catBadge}>🏷️ {categories[q.categoryId] || q.categoryId}</div>
-
-              {/* فيديوهات */}
               <div style={S.grid2}>
                 {[
                   { label: '🎬 فيديو السؤال', url: hasQV ? q.mediaUrl : null },
@@ -152,8 +151,6 @@ export default function ReviewPage() {
                   </div>
                 ))}
               </div>
-
-              {/* نصوص */}
               <div style={S.grid2}>
                 {[
                   { label: 'السؤال', val: q.content },
@@ -165,8 +162,6 @@ export default function ReviewPage() {
                   </div>
                 ))}
               </div>
-
-              {/* أزرار */}
               <div style={{ display:'flex', gap:8, borderTop:'1px solid #E2EAF4', paddingTop:14, marginTop:4 }}>
                 <button style={{ ...S.btn, borderColor:'#1D9E75', color:'#0F6E56', background: dec==='approved'?'#E1F5EE':'transparent' }}
                   onClick={() => decide(q.id, 'approved')}>✅ موافق — ينتقل الفيديوين</button>
@@ -177,7 +172,6 @@ export default function ReviewPage() {
           )
         })}
 
-        {/* سجل النقل */}
         {log.length > 0 && (
           <div style={S.logBox}>
             <h2 style={{ fontSize:16, fontWeight:800, marginBottom:12 }}>📋 سجل النقل</h2>
@@ -194,7 +188,6 @@ export default function ReviewPage() {
         )}
       </div>
 
-      {/* bottom bar */}
       {questions.length > 0 && (
         <div style={S.bottomBar}>
           <span style={{ fontSize:14, color:'#6B8AA8' }}>
@@ -207,7 +200,6 @@ export default function ReviewPage() {
         </div>
       )}
 
-      {/* modal */}
       {preview && (
         <div style={S.modalBg} onClick={() => setPreview(null)}>
           <div style={S.modalInner} onClick={e => e.stopPropagation()}>
@@ -220,7 +212,6 @@ export default function ReviewPage() {
   )
 }
 
-// ── styles ──
 const S = {
   page:      { background:'#EBF3FB', minHeight:'100vh', fontFamily:'Tajawal, sans-serif', color:'#0D2A4A' },
   center:    { display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100vh' },
