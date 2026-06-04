@@ -132,6 +132,7 @@ var BUNNY = {
   key:    "9a72ba56-82d6-4119-b15f42d184fa-3adb-46c3",
   cdnUrl: "shidda-videos.b-cdn.net"
 };
+
 firebase.initializeApp(FIREBASE_CONFIG);
 var db = firebase.firestore();
 
@@ -209,16 +210,22 @@ function render() {
     html += '<div class="cat">🏷️ ' + (categories[q.categoryId] || q.categoryId) + '</div>';
     html += '<div class="grid2">';
     html += '<div><div class="vlabel">🎬 فيديو السؤال</div>';
-    html += hasQV ? '<div class="thumb-wrap" onclick="openVideo(\'' + q.mediaUrl + '\')"><img src="' + thumb(q.mediaUrl) + '" onerror="this.style.display=\'none\'"><div class="play">▶</div></div>' : '<div class="no-v">لا يوجد</div>';
+    if (hasQV) {
+      html += '<div class="thumb-wrap" onclick="openVideo(\'' + q.mediaUrl + '\')"><img src="' + thumb(q.mediaUrl) + '" onerror="this.style.display=\'none\'"><div class="play">▶</div></div>';
+    } else if (q.type === 'image' && q.mediaUrl) {
+      html += '<div class="thumb-wrap" style="cursor:default"><img src="' + q.mediaUrl + '" onerror="this.style.display=\'none\'"></div>';
+    } else {
+      html += '<div class="no-v">لا يوجد</div>';
+    }
     html += '</div>';
     html += '<div><div class="vlabel">✅ فيديو الجواب</div>';
-   if (hasAV) {
-  html += '<div class="thumb-wrap" onclick="openVideo(\'' + q.answerMediaUrl + '\')"><img src="' + thumb(q.answerMediaUrl) + '" onerror="this.style.display=\'none\'"><div class="play">▶</div></div>';
-} else if (q.answerMediaType === 'image' && q.answerMediaUrl) {
-  html += '<div class="thumb-wrap" style="cursor:default"><img src="' + q.answerMediaUrl + '" onerror="this.style.display=\'none\'"></div>';
-} else {
-  html += '<div class="no-v">لا يوجد</div>';
-}
+    if (hasAV) {
+      html += '<div class="thumb-wrap" onclick="openVideo(\'' + q.answerMediaUrl + '\')"><img src="' + thumb(q.answerMediaUrl) + '" onerror="this.style.display=\'none\'"><div class="play">▶</div></div>';
+    } else if (q.answerMediaType === 'image' && q.answerMediaUrl) {
+      html += '<div class="thumb-wrap" style="cursor:default"><img src="' + q.answerMediaUrl + '" onerror="this.style.display=\'none\'"></div>';
+    } else {
+      html += '<div class="no-v">لا يوجد</div>';
+    }
     html += '</div>';
     html += '</div>';
     html += '<div class="grid2">';
