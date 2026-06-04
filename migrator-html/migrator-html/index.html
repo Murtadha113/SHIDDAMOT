@@ -37,7 +37,7 @@ body { background: #EBF3FB; font-family: Tajawal, sans-serif; direction: rtl; co
 .btn-reject { border: 2px solid #D85A30; color: #993C1D; background: transparent; }
 .btn-reject.active { background: #FAECE7; }
 .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #D8EAF8; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
-.migrate-btn { padding: 12px 32px; border-radius: 12px; border: 2px solid #1D9E75; background: #E1F5EE; color: #0F6E56; font-size: 15px; font-weight: 700; font-family: Tajawal, sans-serif; cursor: pointer; transition: background 0.15s; }
+.migrate-btn { padding: 12px 32px; border-radius: 12px; border: 2px solid #1D9E75; background: #E1F5EE; color: #0F6E56; font-size: 15px; font-weight: 700; font-family: Tajawal, sans-serif; cursor: pointer; }
 .migrate-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .migrate-btn:hover:not(:disabled) { background: #9FE1CB; }
 .log-box { background: white; border-radius: 16px; border: 1px solid #D8EAF8; padding: 20px; margin-top: 16px; }
@@ -49,15 +49,43 @@ body { background: #EBF3FB; font-family: Tajawal, sans-serif; direction: rtl; co
 .modal video { width: 100%; border-radius: 12px; max-height: 380px; }
 .modal-close { margin-top: 12px; width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #D8EAF8; background: transparent; font-family: Tajawal, sans-serif; font-size: 14px; color: #6B8AA8; cursor: pointer; }
 .empty { text-align: center; padding: 80px 20px; color: #6B8AA8; font-size: 18px; font-weight: 700; }
+.setup-box { background: white; border-radius: 20px; border: 1px solid #D8EAF8; padding: 32px; max-width: 420px; width: 90%; text-align: center; }
+.setup-box h2 { font-size: 20px; font-weight: 900; margin-bottom: 8px; }
+.setup-box p { font-size: 14px; color: #6B8AA8; margin-bottom: 24px; }
+.num-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 24px; }
+.num-btn { padding: 10px 20px; border-radius: 10px; border: 2px solid #D8EAF8; background: transparent; font-size: 15px; font-weight: 700; cursor: pointer; font-family: Tajawal, sans-serif; color: #0D2A4A; transition: all 0.15s; }
+.num-btn.selected { border-color: #2B7DD4; background: #EBF3FB; color: #2B7DD4; }
+.load-btn { width: 100%; padding: 13px; border-radius: 12px; border: 2px solid #1D9E75; background: #E1F5EE; color: #0F6E56; font-size: 16px; font-weight: 700; font-family: Tajawal, sans-serif; cursor: pointer; }
+.load-btn:hover { background: #9FE1CB; }
+.more-btn { padding: 10px 24px; border-radius: 10px; border: 2px solid #D8EAF8; background: white; font-size: 14px; font-weight: 700; cursor: pointer; font-family: Tajawal, sans-serif; color: #3A6A9A; margin-top: 12px; display: block; margin: 16px auto 0; }
+.more-btn:hover { background: #EBF3FB; }
 </style>
 </head>
 <body>
 
-<div id="loader" class="center">
+<!-- Setup Screen -->
+<div id="setup" class="center">
+  <div class="setup-box">
+    <div style="font-size:48px;margin-bottom:12px">🎬</div>
+    <h2>نقل الفيديوهات</h2>
+    <p>كم سؤال تبي تراجع الحين؟</p>
+    <div class="num-btns">
+      <button class="num-btn" onclick="selectNum(10)" id="btn-10">10</button>
+      <button class="num-btn" onclick="selectNum(20)" id="btn-20">20</button>
+      <button class="num-btn" onclick="selectNum(50)" id="btn-50">50</button>
+      <button class="num-btn" onclick="selectNum(100)" id="btn-100">100</button>
+    </div>
+    <button class="load-btn" id="load-btn" onclick="startLoad()">حمّل الأسئلة ←</button>
+  </div>
+</div>
+
+<!-- Loader -->
+<div id="loader" class="center" style="display:none">
   <div class="spinner"></div>
   <p style="color:#3A6A9A;font-size:16px">جاري التحميل...</p>
 </div>
 
+<!-- App -->
 <div id="app" style="display:none">
   <div class="top-bar">
     <h1>🎬 نقل الفيديوهات — Cloudinary → Bunny CDN</h1>
@@ -69,6 +97,7 @@ body { background: #EBF3FB; font-family: Tajawal, sans-serif; direction: rtl; co
   </div>
   <div class="wrap">
     <div id="cards"></div>
+    <button class="more-btn" id="more-btn" style="display:none" onclick="loadMore()">⬇ حمّل المزيد</button>
     <div id="log-box" class="log-box" style="display:none">
       <h2 style="font-size:16px;font-weight:800;margin-bottom:12px">📋 سجل النقل</h2>
       <div id="log-items"></div>
@@ -80,6 +109,7 @@ body { background: #EBF3FB; font-family: Tajawal, sans-serif; direction: rtl; co
   </div>
 </div>
 
+<!-- Modal -->
 <div class="modal-bg" id="modal" onclick="closeModal()">
   <div class="modal" onclick="event.stopPropagation()">
     <video id="modal-video" controls></video>
@@ -89,7 +119,7 @@ body { background: #EBF3FB; font-family: Tajawal, sans-serif; direction: rtl; co
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js'
-import { getFirestore, collection, getDocs, doc, updateDoc, query, where } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js'
+import { getFirestore, collection, getDocs, doc, updateDoc, query, where, limit, startAfter } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js'
 
 // ============================================================
 const FIREBASE_CONFIG = {
@@ -113,35 +143,71 @@ BUNNY_CDN_URL=https://shidda-videos.b-cdn.net,
 const app = initializeApp(FIREBASE_CONFIG)
 const db  = getFirestore(app)
 
-let questions  = []
-let categories = {}
-let decisions  = {}
+let allLoaded   = []
+let categories  = {}
+let decisions   = {}
+let lastDoc     = null
+let batchSize   = 10
+let hasMore     = false
 
 const isCloud = url => url && (url.includes('res.cloudinary.com') || url.includes('cloudinary.com'))
 const thumb   = url => url.replace('/upload/', '/upload/w_320,h_200,c_fill,so_2/').replace(/\.[^.]+$/, '.jpg')
 
-async function load() {
-  const [qSnap, cSnap] = await Promise.all([
-    getDocs(query(collection(db, 'questions'), where('type', '==', 'video'))),
-    getDocs(collection(db, 'categories')),
-  ])
-  cSnap.forEach(d => { categories[d.id] = d.data().name })
-  questions = qSnap.docs
-    .map(d => ({ id: d.id, ...d.data() }))
-    .filter(q => isCloud(q.mediaUrl) || (isCloud(q.answerMediaUrl) && q.answerMediaType === 'video'))
+window.selectNum = function(n) {
+  batchSize = n
+  document.querySelectorAll('.num-btn').forEach(b => b.classList.remove('selected'))
+  document.getElementById('btn-' + n)?.classList.add('selected')
+}
+window.selectNum(10)
 
-  document.getElementById('loader').style.display = 'none'
-  document.getElementById('app').style.display = 'block'
+window.startLoad = async function() {
+  document.getElementById('setup').style.display  = 'none'
+  document.getElementById('loader').style.display = 'flex'
+  try {
+    const cSnap = await getDocs(collection(db, 'categories'))
+    cSnap.forEach(d => { categories[d.id] = d.data().name })
+    await fetchBatch()
+    document.getElementById('loader').style.display = 'none'
+    document.getElementById('app').style.display    = 'block'
+    render()
+  } catch(e) {
+    document.getElementById('loader').innerHTML = '<p style="color:#993C1D;font-size:16px;padding:20px">خطأ: ' + e.message + '</p>'
+  }
+}
+
+async function fetchBatch() {
+  let q
+  if (lastDoc) {
+    q = query(collection(db, 'questions'), where('type', '==', 'video'), startAfter(lastDoc), limit(batchSize * 3))
+  } else {
+    q = query(collection(db, 'questions'), where('type', '==', 'video'), limit(batchSize * 3))
+  }
+  const snap = await getDocs(q)
+  const filtered = snap.docs
+    .map(d => ({ id: d.id, _ref: d, ...d.data() }))
+    .filter(q => isCloud(q.mediaUrl) || (isCloud(q.answerMediaUrl) && q.answerMediaType === 'video'))
+    .slice(0, batchSize)
+
+  if (filtered.length > 0) lastDoc = filtered[filtered.length - 1]._ref
+  hasMore = snap.docs.length >= batchSize * 3
+
+  allLoaded = [...allLoaded, ...filtered]
+}
+
+window.loadMore = async function() {
+  document.getElementById('more-btn').textContent = '⏳ جاري التحميل...'
+  await fetchBatch()
   render()
 }
 
 function render() {
   const c = document.getElementById('cards')
-  if (questions.length === 0) {
+  if (allLoaded.length === 0) {
     c.innerHTML = '<div class="empty"><div style="font-size:56px">🎉</div><p>ما في فيديوهات على Cloudinary!</p></div>'
+    document.getElementById('more-btn').style.display = 'none'
     return
   }
-  c.innerHTML = questions.map(q => {
+  c.innerHTML = allLoaded.map(q => {
     const hasQV = isCloud(q.mediaUrl)
     const hasAV = isCloud(q.answerMediaUrl) && q.answerMediaType === 'video'
     const dec   = decisions[q.id] || 'pending'
@@ -152,19 +218,13 @@ function render() {
         <div>
           <div class="vlabel">🎬 فيديو السؤال</div>
           ${hasQV
-            ? `<div class="thumb-wrap" onclick="openVideo('${q.mediaUrl}')">
-                 <img src="${thumb(q.mediaUrl)}" onerror="this.style.display='none'">
-                 <div class="play">▶</div>
-               </div>`
+            ? `<div class="thumb-wrap" onclick="openVideo('${q.mediaUrl}')"><img src="${thumb(q.mediaUrl)}" onerror="this.style.display='none'"><div class="play">▶</div></div>`
             : `<div class="no-v">لا يوجد</div>`}
         </div>
         <div>
           <div class="vlabel">✅ فيديو الجواب</div>
           ${hasAV
-            ? `<div class="thumb-wrap" onclick="openVideo('${q.answerMediaUrl}')">
-                 <img src="${thumb(q.answerMediaUrl)}" onerror="this.style.display='none'">
-                 <div class="play">▶</div>
-               </div>`
+            ? `<div class="thumb-wrap" onclick="openVideo('${q.answerMediaUrl}')"><img src="${thumb(q.answerMediaUrl)}" onerror="this.style.display='none'"><div class="play">▶</div></div>`
             : `<div class="no-v">لا يوجد</div>`}
         </div>
       </div>
@@ -173,11 +233,14 @@ function render() {
         <div class="tbox"><div class="tbox-label">الجواب</div><div class="tbox-val">${q.answer}</div></div>
       </div>
       <div class="actions">
-        <button class="btn-approve ${dec==='approved'?'active':''}" onclick="decide('${q.id}','approved')">✅ موافق — ينتقل الفيديوين</button>
-        <button class="btn-reject ${dec==='rejected'?'active':''}" onclick="decide('${q.id}','rejected')">❌ تجاهل</button>
+        <button class="btn-approve ${dec === 'approved' ? 'active' : ''}" onclick="decide('${q.id}','approved')">✅ موافق — ينتقل الفيديوين</button>
+        <button class="btn-reject ${dec === 'rejected' ? 'active' : ''}" onclick="decide('${q.id}','rejected')">❌ تجاهل</button>
       </div>
     </div>`
   }).join('')
+
+  document.getElementById('more-btn').style.display = hasMore ? 'block' : 'none'
+  document.getElementById('more-btn').textContent = '⬇ حمّل المزيد'
   updateStats()
 }
 
@@ -185,20 +248,20 @@ window.decide = function(id, dec) {
   decisions[id] = dec
   const card = document.getElementById('card-' + id)
   card.className = 'card ' + (dec !== 'pending' ? dec : '')
-  card.querySelector('.btn-approve').className = 'btn-approve' + (dec==='approved'?' active':'')
-  card.querySelector('.btn-reject').className  = 'btn-reject'  + (dec==='rejected'?' active':'')
+  card.querySelector('.btn-approve').className = 'btn-approve' + (dec === 'approved' ? ' active' : '')
+  card.querySelector('.btn-reject').className  = 'btn-reject'  + (dec === 'rejected' ? ' active' : '')
   updateStats()
 }
 
 function updateStats() {
-  const a = Object.values(decisions).filter(d => d==='approved').length
-  const r = Object.values(decisions).filter(d => d==='rejected').length
-  const p = questions.length - a - r
+  const a = Object.values(decisions).filter(d => d === 'approved').length
+  const r = Object.values(decisions).filter(d => d === 'rejected').length
+  const p = allLoaded.length - a - r
   document.getElementById('cnt-a').textContent = a
   document.getElementById('cnt-r').textContent = r
   document.getElementById('cnt-p').textContent = p
   document.getElementById('migrate-btn').disabled = a === 0
-  document.getElementById('note').textContent = a > 0 ? `${a} سؤال — ${a*2} فيديو جاهز` : 'راجع الأسئلة وأعطِ موافقتك'
+  document.getElementById('note').textContent = a > 0 ? `${a} سؤال — ${a * 2} فيديو جاهز` : 'راجع الأسئلة وأعطِ موافقتك'
 }
 
 window.openVideo = function(url) {
@@ -218,27 +281,24 @@ async function migrateFile(url) {
   const raw   = parts[parts.length - 1].split('?')[0]
   const ext   = raw.split('.').pop() || 'mp4'
   const base  = raw.replace(/\.[^.]+$/, '')
-  const name  = `${base}_${Date.now()}.${ext}`
-  const up = await fetch(`https://storage.bunnycdn.com/${BUNNY.zone}/videos/${name}`, {
+  const name  = base + '_' + Date.now() + '.' + ext
+  const up = await fetch('https://storage.bunnycdn.com/' + BUNNY.zone + '/videos/' + name, {
     method: 'PUT',
     headers: { AccessKey: BUNNY.key, 'Content-Type': 'application/octet-stream' },
-    body: blob,
+    body: blob
   })
   if (!up.ok) throw new Error('فشل الرفع: ' + up.status)
-  return `${BUNNY.cdnUrl}/videos/${name}`
+  return BUNNY.cdnUrl + '/videos/' + name
 }
 
 window.startMigration = async function() {
-  const toMigrate = questions.filter(q => decisions[q.id] === 'approved')
+  const toMigrate = allLoaded.filter(q => decisions[q.id] === 'approved')
   document.getElementById('migrate-btn').disabled = true
   document.getElementById('log-box').style.display = 'block'
   const logEl = document.getElementById('log-items')
-  logEl.innerHTML = toMigrate.map((q,i) => `
-    <div class="log-item" id="log-${i}">
-      <span id="log-ico-${i}">⏳</span>
-      <span class="log-id">${q.id.substring(0,24)}...</span>
-      <span id="log-status-${i}" style="font-weight:700;color:#6B8AA8">معلق</span>
-    </div>`).join('')
+  logEl.innerHTML = toMigrate.map(function(q, i) {
+    return '<div class="log-item" id="log-' + i + '"><span id="log-ico-' + i + '">⏳</span><span class="log-id">' + q.id.substring(0, 24) + '...</span><span id="log-status-' + i + '" style="font-weight:700;color:#6B8AA8">معلق</span></div>'
+  }).join('')
 
   for (let i = 0; i < toMigrate.length; i++) {
     const q = toMigrate[i]
@@ -246,10 +306,8 @@ window.startMigration = async function() {
     document.getElementById('log-status-' + i).textContent = 'جاري...'
     try {
       const updates = {}
-      if (isCloud(q.mediaUrl))
-        updates.mediaUrl = await migrateFile(q.mediaUrl)
-      if (isCloud(q.answerMediaUrl) && q.answerMediaType === 'video')
-        updates.answerMediaUrl = await migrateFile(q.answerMediaUrl)
+      if (isCloud(q.mediaUrl)) updates.mediaUrl = await migrateFile(q.mediaUrl)
+      if (isCloud(q.answerMediaUrl) && q.answerMediaType === 'video') updates.answerMediaUrl = await migrateFile(q.answerMediaUrl)
       await updateDoc(doc(db, 'questions', q.id), updates)
       document.getElementById('log-ico-' + i).textContent = '✅'
       document.getElementById('log-status-' + i).textContent = 'تم'
@@ -263,10 +321,6 @@ window.startMigration = async function() {
   }
   document.getElementById('migrate-btn').textContent = '✅ اكتمل النقل!'
 }
-
-load().catch(e => {
-  document.getElementById('loader').innerHTML = `<p style="color:#993C1D;font-size:16px;padding:20px">خطأ: ${e.message}</p>`
-})
 </script>
 </body>
 </html>
