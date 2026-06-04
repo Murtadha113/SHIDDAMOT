@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نقل الفيديوهات — شدة</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800;900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #EBF3FB; font-family: Tajawal, sans-serif; direction: rtl; color: #0D2A4A; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner { width: 40px; height: 40px; border: 4px solid #D8EAF8; border-top-color: #2B7DD4; border-radius: 50%; animation: spin 0.8s linear infinite; }
+.center { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; gap: 16px; }
+.top-bar { background: white; border-bottom: 1px solid #D8EAF8; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+.top-bar h1 { font-size: 18px; font-weight: 900; }
+.badges { display: flex; gap: 8px; }
+.badge { padding: 5px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; }
+.wrap { max-width: 860px; margin: 0 auto; padding: 24px 16px 120px; }
+.card { background: white; border-radius: 18px; border: 1.5px solid #D8EAF8; padding: 20px; margin-bottom: 14px; }
+.card.approved { border-color: #1D9E75; }
+.card.rejected { border-color: #D85A30; }
+.cat { display: inline-flex; gap: 4px; font-size: 12px; padding: 4px 12px; border-radius: 8px; background: #EBF3FB; color: #2B7DD4; margin-bottom: 12px; font-weight: 700; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.vlabel { font-size: 12px; color: #6B8AA8; font-weight: 700; margin-bottom: 6px; }
+.thumb-wrap { position: relative; height: 110px; border-radius: 12px; overflow: hidden; cursor: pointer; background: #EBF3FB; }
+.thumb-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.play { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); font-size: 28px; color: white; opacity: 0; transition: opacity 0.15s; }
+.thumb-wrap:hover .play { opacity: 1; }
+.no-v { height: 110px; background: #F0F4F8; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #9BA8B8; font-size: 13px; }
+.tbox { background: #F7FAFD; border-radius: 10px; padding: 10px 14px; }
+.tbox-label { font-size: 11px; color: #9BA8B8; margin-bottom: 3px; }
+.tbox-val { font-size: 14px; font-weight: 700; line-height: 1.5; }
+.actions { display: flex; gap: 8px; border-top: 1px solid #E2EAF4; padding-top: 14px; margin-top: 4px; }
+.btn-approve, .btn-reject { flex: 1; padding: 10px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: Tajawal, sans-serif; transition: background 0.15s; }
+.btn-approve { border: 2px solid #1D9E75; color: #0F6E56; background: transparent; }
+.btn-approve.active { background: #E1F5EE; }
+.btn-reject { border: 2px solid #D85A30; color: #993C1D; background: transparent; }
+.btn-reject.active { background: #FAECE7; }
+.bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #D8EAF8; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+.migrate-btn { padding: 12px 32px; border-radius: 12px; border: 2px solid #1D9E75; background: #E1F5EE; color: #0F6E56; font-size: 15px; font-weight: 700; font-family: Tajawal, sans-serif; cursor: pointer; transition: background 0.15s; }
+.migrate-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.migrate-btn:hover:not(:disabled) { background: #9FE1CB; }
+.log-box { background: white; border-radius: 16px; border: 1px solid #D8EAF8; padding: 20px; margin-top: 16px; }
+.log-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; background: #F7FAFD; margin-bottom: 6px; font-size: 13px; }
+.log-id { flex: 1; font-family: monospace; font-size: 12px; color: #3A6A9A; }
+.modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 200; align-items: center; justify-content: center; }
+.modal-bg.open { display: flex; }
+.modal { background: white; border-radius: 18px; padding: 16px; width: 90%; max-width: 580px; }
+.modal video { width: 100%; border-radius: 12px; max-height: 380px; }
+.modal-close { margin-top: 12px; width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #D8EAF8; background: transparent; font-family: Tajawal, sans-serif; font-size: 14px; color: #6B8AA8; cursor: pointer; }
+.empty { text-align: center; padding: 80px 20px; color: #6B8AA8; font-size: 18px; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div id="loader" class="center">
+  <div class="spinner"></div>
+  <p style="color:#3A6A9A;font-size:16px">جاري التحميل...</p>
+</div>
+
+<div id="app" style="display:none">
+  <div class="top-bar">
+    <h1>🎬 نقل الفيديوهات — Cloudinary → Bunny CDN</h1>
+    <div class="badges">
+      <span class="badge" style="background:#E1F5EE;color:#0F6E56">✅ <span id="cnt-a">0</span></span>
+      <span class="badge" style="background:#FEF3EA;color:#BA7517">⏳ <span id="cnt-p">0</span></span>
+      <span class="badge" style="background:#FAECE7;color:#993C1D">❌ <span id="cnt-r">0</span></span>
+    </div>
+  </div>
+  <div class="wrap">
+    <div id="cards"></div>
+    <div id="log-box" class="log-box" style="display:none">
+      <h2 style="font-size:16px;font-weight:800;margin-bottom:12px">📋 سجل النقل</h2>
+      <div id="log-items"></div>
+    </div>
+  </div>
+  <div class="bottom-bar">
+    <span id="note" style="font-size:14px;color:#6B8AA8">راجع الأسئلة وأعطِ موافقتك</span>
+    <button class="migrate-btn" id="migrate-btn" disabled onclick="startMigration()">🚀 ابدأ النقل</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal" onclick="closeModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <video id="modal-video" controls></video>
+    <button class="modal-close" onclick="closeModal()">إغلاق</button>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js'
+import { getFirestore, collection, getDocs, doc, updateDoc, query, where } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js'
+
+// ============================================================
+const FIREBASE_CONFIG = {
+  apiKey:            "REPLACE_apiKey",
+  authDomain:        "REPLACE_authDomain",
+  projectId:         "REPLACE_projectId",
+  storageBucket:     "REPLACE_storageBucket",
+  messagingSenderId: "REPLACE_messagingSenderId",
+  appId:             "REPLACE_appId",
+}
+const BUNNY = {
+  zone:   "REPLACE_ZONE",
+  key:    "REPLACE_KEY",
+  cdnUrl: "REPLACE_CDN_URL",
+}
+// ============================================================
+
+const app = initializeApp(FIREBASE_CONFIG)
+const db  = getFirestore(app)
+
+let questions  = []
+let categories = {}
+let decisions  = {}
+
+const isCloud = url => url && (url.includes('res.cloudinary.com') || url.includes('cloudinary.com'))
+const thumb   = url => url.replace('/upload/', '/upload/w_320,h_200,c_fill,so_2/').replace(/\.[^.]+$/, '.jpg')
+
+async function load() {
+  const [qSnap, cSnap] = await Promise.all([
+    getDocs(query(collection(db, 'questions'), where('type', '==', 'video'))),
+    getDocs(collection(db, 'categories')),
+  ])
+  cSnap.forEach(d => { categories[d.id] = d.data().name })
+  questions = qSnap.docs
+    .map(d => ({ id: d.id, ...d.data() }))
+    .filter(q => isCloud(q.mediaUrl) || (isCloud(q.answerMediaUrl) && q.answerMediaType === 'video'))
+
+  document.getElementById('loader').style.display = 'none'
+  document.getElementById('app').style.display = 'block'
+  render()
+}
+
+function render() {
+  const c = document.getElementById('cards')
+  if (questions.length === 0) {
+    c.innerHTML = '<div class="empty"><div style="font-size:56px">🎉</div><p>ما في فيديوهات على Cloudinary!</p></div>'
+    return
+  }
+  c.innerHTML = questions.map(q => {
+    const hasQV = isCloud(q.mediaUrl)
+    const hasAV = isCloud(q.answerMediaUrl) && q.answerMediaType === 'video'
+    const dec   = decisions[q.id] || 'pending'
+    return `
+    <div class="card ${dec !== 'pending' ? dec : ''}" id="card-${q.id}">
+      <div class="cat">🏷️ ${categories[q.categoryId] || q.categoryId}</div>
+      <div class="grid2">
+        <div>
+          <div class="vlabel">🎬 فيديو السؤال</div>
+          ${hasQV
+            ? `<div class="thumb-wrap" onclick="openVideo('${q.mediaUrl}')">
+                 <img src="${thumb(q.mediaUrl)}" onerror="this.style.display='none'">
+                 <div class="play">▶</div>
+               </div>`
+            : `<div class="no-v">لا يوجد</div>`}
+        </div>
+        <div>
+          <div class="vlabel">✅ فيديو الجواب</div>
+          ${hasAV
+            ? `<div class="thumb-wrap" onclick="openVideo('${q.answerMediaUrl}')">
+                 <img src="${thumb(q.answerMediaUrl)}" onerror="this.style.display='none'">
+                 <div class="play">▶</div>
+               </div>`
+            : `<div class="no-v">لا يوجد</div>`}
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="tbox"><div class="tbox-label">السؤال</div><div class="tbox-val">${q.content}</div></div>
+        <div class="tbox"><div class="tbox-label">الجواب</div><div class="tbox-val">${q.answer}</div></div>
+      </div>
+      <div class="actions">
+        <button class="btn-approve ${dec==='approved'?'active':''}" onclick="decide('${q.id}','approved')">✅ موافق — ينتقل الفيديوين</button>
+        <button class="btn-reject ${dec==='rejected'?'active':''}" onclick="decide('${q.id}','rejected')">❌ تجاهل</button>
+      </div>
+    </div>`
+  }).join('')
+  updateStats()
+}
+
+window.decide = function(id, dec) {
+  decisions[id] = dec
+  const card = document.getElementById('card-' + id)
+  card.className = 'card ' + (dec !== 'pending' ? dec : '')
+  card.querySelector('.btn-approve').className = 'btn-approve' + (dec==='approved'?' active':'')
+  card.querySelector('.btn-reject').className  = 'btn-reject'  + (dec==='rejected'?' active':'')
+  updateStats()
+}
+
+function updateStats() {
+  const a = Object.values(decisions).filter(d => d==='approved').length
+  const r = Object.values(decisions).filter(d => d==='rejected').length
+  const p = questions.length - a - r
+  document.getElementById('cnt-a').textContent = a
+  document.getElementById('cnt-r').textContent = r
+  document.getElementById('cnt-p').textContent = p
+  document.getElementById('migrate-btn').disabled = a === 0
+  document.getElementById('note').textContent = a > 0 ? `${a} سؤال — ${a*2} فيديو جاهز` : 'راجع الأسئلة وأعطِ موافقتك'
+}
+
+window.openVideo = function(url) {
+  document.getElementById('modal-video').src = url
+  document.getElementById('modal').classList.add('open')
+}
+window.closeModal = function() {
+  document.getElementById('modal').classList.remove('open')
+  document.getElementById('modal-video').src = ''
+}
+
+async function migrateFile(url) {
+  const res  = await fetch(url)
+  if (!res.ok) throw new Error('فشل التنزيل')
+  const blob = await res.blob()
+  const parts = url.split('/')
+  const raw   = parts[parts.length - 1].split('?')[0]
+  const ext   = raw.split('.').pop() || 'mp4'
+  const base  = raw.replace(/\.[^.]+$/, '')
+  const name  = `${base}_${Date.now()}.${ext}`
+  const up = await fetch(`https://storage.bunnycdn.com/${BUNNY.zone}/videos/${name}`, {
+    method: 'PUT',
+    headers: { AccessKey: BUNNY.key, 'Content-Type': 'application/octet-stream' },
+    body: blob,
+  })
+  if (!up.ok) throw new Error('فشل الرفع: ' + up.status)
+  return `${BUNNY.cdnUrl}/videos/${name}`
+}
+
+window.startMigration = async function() {
+  const toMigrate = questions.filter(q => decisions[q.id] === 'approved')
+  document.getElementById('migrate-btn').disabled = true
+  document.getElementById('log-box').style.display = 'block'
+  const logEl = document.getElementById('log-items')
+  logEl.innerHTML = toMigrate.map((q,i) => `
+    <div class="log-item" id="log-${i}">
+      <span id="log-ico-${i}">⏳</span>
+      <span class="log-id">${q.id.substring(0,24)}...</span>
+      <span id="log-status-${i}" style="font-weight:700;color:#6B8AA8">معلق</span>
+    </div>`).join('')
+
+  for (let i = 0; i < toMigrate.length; i++) {
+    const q = toMigrate[i]
+    document.getElementById('log-ico-' + i).textContent = '🔄'
+    document.getElementById('log-status-' + i).textContent = 'جاري...'
+    try {
+      const updates = {}
+      if (isCloud(q.mediaUrl))
+        updates.mediaUrl = await migrateFile(q.mediaUrl)
+      if (isCloud(q.answerMediaUrl) && q.answerMediaType === 'video')
+        updates.answerMediaUrl = await migrateFile(q.answerMediaUrl)
+      await updateDoc(doc(db, 'questions', q.id), updates)
+      document.getElementById('log-ico-' + i).textContent = '✅'
+      document.getElementById('log-status-' + i).textContent = 'تم'
+      document.getElementById('log-status-' + i).style.color = '#0F6E56'
+    } catch(err) {
+      document.getElementById('log-ico-' + i).textContent = '❌'
+      document.getElementById('log-status-' + i).textContent = 'فشل: ' + err.message
+      document.getElementById('log-status-' + i).style.color = '#993C1D'
+    }
+    await new Promise(r => setTimeout(r, 200))
+  }
+  document.getElementById('migrate-btn').textContent = '✅ اكتمل النقل!'
+}
+
+load().catch(e => {
+  document.getElementById('loader').innerHTML = `<p style="color:#993C1D;font-size:16px;padding:20px">خطأ: ${e.message}</p>`
+})
+</script>
+</body>
+</html>
