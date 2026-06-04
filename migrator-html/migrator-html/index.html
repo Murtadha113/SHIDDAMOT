@@ -49,6 +49,25 @@ body { background: #EBF3FB; font-family: Tajawal, sans-serif; direction: rtl; co
 .modal video { width: 100%; border-radius: 12px; max-height: 380px; }
 .modal-close { margin-top: 12px; width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #D8EAF8; background: transparent; font-family: Tajawal, sans-serif; font-size: 14px; color: #6B8AA8; cursor: pointer; }
 .empty { text-align: center; padding: 80px 20px; color: #6B8AA8; font-size: 18px; font-weight: 700; }
+
+/* ===== LOGIN SCREEN ===== */
+.login-box { background: white; border-radius: 20px; border: 1px solid #D8EAF8; padding: 36px; max-width: 400px; width: 90%; text-align: center; box-shadow: 0 4px 24px rgba(43,125,212,0.08); }
+.login-box .icon { font-size: 52px; margin-bottom: 12px; }
+.login-box h2 { font-size: 22px; font-weight: 900; margin-bottom: 6px; }
+.login-box p { font-size: 14px; color: #6B8AA8; margin-bottom: 28px; }
+.input-group { text-align: right; margin-bottom: 14px; }
+.input-group label { display: block; font-size: 13px; font-weight: 700; color: #3A6A9A; margin-bottom: 6px; }
+.input-group input { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1.5px solid #D8EAF8; font-size: 14px; font-family: Tajawal, sans-serif; color: #0D2A4A; outline: none; transition: border-color 0.15s; direction: ltr; text-align: left; }
+.input-group input:focus { border-color: #2B7DD4; }
+.login-btn { width: 100%; padding: 13px; border-radius: 12px; border: 2px solid #2B7DD4; background: #EBF3FB; color: #1A5FA0; font-size: 16px; font-weight: 700; font-family: Tajawal, sans-serif; cursor: pointer; margin-top: 8px; transition: background 0.15s; }
+.login-btn:hover { background: #C5DFFB; }
+.login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.login-error { margin-top: 12px; padding: 10px 14px; border-radius: 10px; background: #FAECE7; color: #993C1D; font-size: 13px; font-weight: 700; display: none; }
+.user-pill { display: flex; align-items: center; gap: 8px; background: #EBF3FB; border-radius: 20px; padding: 5px 14px; font-size: 13px; font-weight: 700; color: #1A5FA0; }
+.logout-btn { background: none; border: none; color: #9BA8B8; font-size: 13px; cursor: pointer; font-family: Tajawal, sans-serif; padding: 4px 8px; }
+.logout-btn:hover { color: #D85A30; }
+
+/* ===== SETUP SCREEN ===== */
 .setup-box { background: white; border-radius: 20px; border: 1px solid #D8EAF8; padding: 32px; max-width: 420px; width: 90%; text-align: center; }
 .setup-box h2 { font-size: 20px; font-weight: 900; margin-bottom: 8px; }
 .setup-box p { font-size: 14px; color: #6B8AA8; margin-bottom: 24px; }
@@ -63,7 +82,27 @@ body { background: #EBF3FB; font-family: Tajawal, sans-serif; direction: rtl; co
 </head>
 <body>
 
-<div id="setup" class="center">
+<!-- ===== LOGIN ===== -->
+<div id="login-screen" class="center">
+  <div class="login-box">
+    <div class="icon">🔐</div>
+    <h2>تسجيل الدخول</h2>
+    <p>سجّل دخولك بحساب الأدمن لتبدأ نقل الفيديوهات</p>
+    <div class="input-group">
+      <label>الإيميل</label>
+      <input type="email" id="inp-email" placeholder="admin@example.com" />
+    </div>
+    <div class="input-group">
+      <label>كلمة المرور</label>
+      <input type="password" id="inp-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" />
+    </div>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">دخول →</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- ===== SETUP ===== -->
+<div id="setup" class="center" style="display:none">
   <div class="setup-box">
     <div style="font-size:48px;margin-bottom:12px">🎬</div>
     <h2>نقل الفيديوهات</h2>
@@ -74,22 +113,28 @@ body { background: #EBF3FB; font-family: Tajawal, sans-serif; direction: rtl; co
       <button class="num-btn" id="btn-50" onclick="selectNum(50)">50</button>
       <button class="num-btn" id="btn-100" onclick="selectNum(100)">100</button>
     </div>
-    <button class="load-btn" onclick="startLoad()">حمّل الأسئلة &larr;</button>
+    <button class="load-btn" onclick="startLoad()">حمّل الأسئلة ←</button>
   </div>
 </div>
 
+<!-- ===== LOADER ===== -->
 <div id="loader" class="center" style="display:none">
   <div class="spinner"></div>
   <p style="color:#3A6A9A;font-size:16px">جاري التحميل...</p>
 </div>
 
+<!-- ===== APP ===== -->
 <div id="app" style="display:none">
   <div class="top-bar">
     <h1>🎬 نقل الفيديوهات — Cloudinary → Bunny CDN</h1>
-    <div class="badges">
-      <span class="badge" style="background:#E1F5EE;color:#0F6E56">✅ <span id="cnt-a">0</span></span>
-      <span class="badge" style="background:#FEF3EA;color:#BA7517">⏳ <span id="cnt-p">0</span></span>
-      <span class="badge" style="background:#FAECE7;color:#993C1D">❌ <span id="cnt-r">0</span></span>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="badges">
+        <span class="badge" style="background:#E1F5EE;color:#0F6E56">✅ <span id="cnt-a">0</span></span>
+        <span class="badge" style="background:#FEF3EA;color:#BA7517">⏳ <span id="cnt-p">0</span></span>
+        <span class="badge" style="background:#FAECE7;color:#993C1D">❌ <span id="cnt-r">0</span></span>
+      </div>
+      <div class="user-pill">👤 <span id="user-email-display"></span></div>
+      <button class="logout-btn" onclick="doLogout()">خروج</button>
     </div>
   </div>
   <div class="wrap">
@@ -106,6 +151,7 @@ body { background: #EBF3FB; font-family: Tajawal, sans-serif; direction: rtl; co
   </div>
 </div>
 
+<!-- ===== MODAL ===== -->
 <div class="modal-bg" id="modal" onclick="closeModal()">
   <div class="modal" onclick="event.stopPropagation()">
     <video id="modal-video" controls></video>
@@ -114,6 +160,7 @@ body { background: #EBF3FB; font-family: Tajawal, sans-serif; direction: rtl; co
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <script>
@@ -124,7 +171,7 @@ var FIREBASE_CONFIG = {
   projectId: "shidda",
   storageBucket: "shidda.firebasestorage.app",
   messagingSenderId: "80643661575",
-  appId: "1:80643661575:web:c671a5432e65f42e49afa2",
+  appId: "1:80643661675:web:c671a5432e65f42e49afa2",
   measurementId: "G-B5EP62PDEE"
 };
 var BUNNY = {
@@ -134,8 +181,53 @@ var BUNNY = {
 };
 
 firebase.initializeApp(FIREBASE_CONFIG);
-var db = firebase.firestore();
+var auth = firebase.auth();
+var db   = firebase.firestore();
 
+// ===== AUTH =====
+auth.onAuthStateChanged(function(user) {
+  if (user) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('user-email-display').textContent = user.email;
+    document.getElementById('setup').style.display = 'flex';
+  } else {
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('setup').style.display = 'none';
+    document.getElementById('app').style.display = 'none';
+  }
+});
+
+function doLogin() {
+  var email = document.getElementById('inp-email').value.trim();
+  var pass  = document.getElementById('inp-pass').value;
+  var btn   = document.getElementById('login-btn');
+  var err   = document.getElementById('login-error');
+  if (!email || !pass) { showErr('الرجاء إدخال الإيميل وكلمة المرور'); return; }
+  btn.disabled = true;
+  btn.textContent = '⏳ جاري الدخول...';
+  err.style.display = 'none';
+  auth.signInWithEmailAndPassword(email, pass).catch(function(e) {
+    btn.disabled = false;
+    btn.textContent = 'دخول →';
+    var msg = 'خطأ في تسجيل الدخول';
+    if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') msg = 'كلمة المرور غلط';
+    else if (e.code === 'auth/user-not-found') msg = 'الحساب غير موجود';
+    else if (e.code === 'auth/invalid-email') msg = 'الإيميل غير صحيح';
+    showErr(msg);
+  });
+}
+
+function showErr(msg) {
+  var err = document.getElementById('login-error');
+  err.textContent = msg;
+  err.style.display = 'block';
+}
+
+function doLogout() {
+  auth.signOut();
+}
+
+// ===== MIGRATION LOGIC =====
 var allLoaded  = [];
 var categories = {};
 var decisions  = {};
@@ -234,7 +326,7 @@ function render() {
     html += '</div>';
     html += '<div class="actions">';
     html += '<button class="btn-approve ' + (dec === 'approved' ? 'active' : '') + '" onclick="decide(\'' + q.id + '\',\'approved\')">✅ موافق — ينتقل الفيديوين</button>';
-    html += '<button class="btn-reject ' + (dec === 'rejected' ? 'active' : '') + '" onclick="decide(\'' + q.id + '\',\'rejected\')">❌ تجاهل</button>';
+    html += '<button class="btn-reject '  + (dec === 'rejected' ? 'active' : '') + '" onclick="decide(\'' + q.id + '\',\'rejected\')">❌ تجاهل</button>';
     html += '</div>';
     html += '</div>';
   }
