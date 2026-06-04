@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { initializeApp, getApps } from 'firebase/app'
 import { getFirestore, collection, getDocs, doc, updateDoc, query, where } from 'firebase/firestore'
+import dynamic from 'next/dynamic'
 
 const FIREBASE_CONFIG = {
   apiKey:            process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -18,7 +19,7 @@ function getDB() {
   return getFirestore(app)
 }
 
-export default function ReviewPage() {
+function ReviewPageInner() {
   const [questions, setQuestions] = useState([])
   const [categories, setCategories] = useState({})
   const [decisions, setDecisions] = useState({})
@@ -124,7 +125,7 @@ export default function ReviewPage() {
         )}
 
         {questions.map(q => {
-          const dec   = decisions[q.id] || 'pending'
+          const dec = decisions[q.id] || 'pending'
           const isCloud = url => url && (url.includes('cloudinary.com') || url.includes('res.cloudinary.com'))
           const hasQV = isCloud(q.mediaUrl)
           const hasAV = isCloud(q.answerMediaUrl) && q.answerMediaType === 'video'
@@ -217,3 +218,6 @@ export default function ReviewPage() {
     </div>
   )
 }
+
+const ReviewPage = dynamic(() => Promise.resolve(ReviewPageInner), { ssr: false })
+export default ReviewPage
