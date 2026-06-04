@@ -212,7 +212,13 @@ function render() {
     html += hasQV ? '<div class="thumb-wrap" onclick="openVideo(\'' + q.mediaUrl + '\')"><img src="' + thumb(q.mediaUrl) + '" onerror="this.style.display=\'none\'"><div class="play">▶</div></div>' : '<div class="no-v">لا يوجد</div>';
     html += '</div>';
     html += '<div><div class="vlabel">✅ فيديو الجواب</div>';
-    html += hasAV ? '<div class="thumb-wrap" onclick="openVideo(\'' + q.answerMediaUrl + '\')"><img src="' + thumb(q.answerMediaUrl) + '" onerror="this.style.display=\'none\'"><div class="play">▶</div></div>' : '<div class="no-v">لا يوجد</div>';
+   if (hasAV) {
+  html += '<div class="thumb-wrap" onclick="openVideo(\'' + q.answerMediaUrl + '\')"><img src="' + thumb(q.answerMediaUrl) + '" onerror="this.style.display=\'none\'"><div class="play">▶</div></div>';
+} else if (q.answerMediaType === 'image' && q.answerMediaUrl) {
+  html += '<div class="thumb-wrap" style="cursor:default"><img src="' + q.answerMediaUrl + '" onerror="this.style.display=\'none\'"></div>';
+} else {
+  html += '<div class="no-v">لا يوجد</div>';
+}
     html += '</div>';
     html += '</div>';
     html += '<div class="grid2">';
