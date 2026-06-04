@@ -57,35 +57,32 @@ body { background: #EBF3FB; font-family: Tajawal, sans-serif; direction: rtl; co
 .num-btn.selected { border-color: #2B7DD4; background: #EBF3FB; color: #2B7DD4; }
 .load-btn { width: 100%; padding: 13px; border-radius: 12px; border: 2px solid #1D9E75; background: #E1F5EE; color: #0F6E56; font-size: 16px; font-weight: 700; font-family: Tajawal, sans-serif; cursor: pointer; }
 .load-btn:hover { background: #9FE1CB; }
-.more-btn { padding: 10px 24px; border-radius: 10px; border: 2px solid #D8EAF8; background: white; font-size: 14px; font-weight: 700; cursor: pointer; font-family: Tajawal, sans-serif; color: #3A6A9A; margin-top: 12px; display: block; margin: 16px auto 0; }
+.more-btn { padding: 10px 24px; border-radius: 10px; border: 2px solid #D8EAF8; background: white; font-size: 14px; font-weight: 700; cursor: pointer; font-family: Tajawal, sans-serif; color: #3A6A9A; margin: 16px auto 0; display: block; }
 .more-btn:hover { background: #EBF3FB; }
 </style>
 </head>
 <body>
 
-<!-- Setup Screen -->
 <div id="setup" class="center">
   <div class="setup-box">
     <div style="font-size:48px;margin-bottom:12px">🎬</div>
     <h2>نقل الفيديوهات</h2>
     <p>كم سؤال تبي تراجع الحين؟</p>
     <div class="num-btns">
-      <button class="num-btn" onclick="selectNum(10)" id="btn-10">10</button>
-      <button class="num-btn" onclick="selectNum(20)" id="btn-20">20</button>
-      <button class="num-btn" onclick="selectNum(50)" id="btn-50">50</button>
-      <button class="num-btn" onclick="selectNum(100)" id="btn-100">100</button>
+      <button class="num-btn selected" id="btn-10" onclick="selectNum(10)">10</button>
+      <button class="num-btn" id="btn-20" onclick="selectNum(20)">20</button>
+      <button class="num-btn" id="btn-50" onclick="selectNum(50)">50</button>
+      <button class="num-btn" id="btn-100" onclick="selectNum(100)">100</button>
     </div>
-    <button class="load-btn" id="load-btn" onclick="startLoad()">حمّل الأسئلة ←</button>
+    <button class="load-btn" onclick="startLoad()">حمّل الأسئلة &larr;</button>
   </div>
 </div>
 
-<!-- Loader -->
 <div id="loader" class="center" style="display:none">
   <div class="spinner"></div>
   <p style="color:#3A6A9A;font-size:16px">جاري التحميل...</p>
 </div>
 
-<!-- App -->
 <div id="app" style="display:none">
   <div class="top-bar">
     <h1>🎬 نقل الفيديوهات — Cloudinary → Bunny CDN</h1>
@@ -109,7 +106,6 @@ body { background: #EBF3FB; font-family: Tajawal, sans-serif; direction: rtl; co
   </div>
 </div>
 
-<!-- Modal -->
 <div class="modal-bg" id="modal" onclick="closeModal()">
   <div class="modal" onclick="event.stopPropagation()">
     <video id="modal-video" controls></video>
@@ -117,12 +113,12 @@ body { background: #EBF3FB; font-family: Tajawal, sans-serif; direction: rtl; co
   </div>
 </div>
 
-<script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js'
-import { getFirestore, collection, getDocs, doc, updateDoc, query, where, limit, startAfter } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js'
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-// ============================================================
- apiKey: "AIzaSyCdrP55RPDqVkcb8KX7X-Swt4wk23jcA2M",
+<script>
+var FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCdrP55RPDqVkcb8KX7X-Swt4wk23jcA2M",
   authDomain: "shidda.firebaseapp.com",
   databaseURL: "https://shidda-default-rtdb.firebaseio.com",
   projectId: "shidda",
@@ -130,192 +126,205 @@ import { getFirestore, collection, getDocs, doc, updateDoc, query, where, limit,
   messagingSenderId: "80643661575",
   appId: "1:80643661575:web:c671a5432e65f42e49afa2",
   measurementId: "G-B5EP62PDEE"
-BUNNY_STORAGE_ZONE=shidda-videos
-BUNNY_API_KEY=9a72ba56-82d6-4119-b15f42d184fa-3adb-46c3
-BUNNY_CDN_URL=https://shidda-videos.b-cdn.net
+};
+var BUNNY = {
+  zone:   "shidda-videos",
+  key:    "9a72ba56-82d6-4119-b15f42d184fa-3adb-46c3",
+  cdnUrl: "shidda-videos.b-cdn.net"
+};
+firebase.initializeApp(FIREBASE_CONFIG);
+var db = firebase.firestore();
 
-// ============================================================
+var allLoaded  = [];
+var categories = {};
+var decisions  = {};
+var lastDoc    = null;
+var batchSize  = 10;
+var hasMore    = false;
 
-const app = initializeApp(FIREBASE_CONFIG)
-const db  = getFirestore(app)
+function isCloud(url) { return url && (url.indexOf('cloudinary.com') !== -1); }
+function thumb(url)   { return url.replace('/upload/', '/upload/w_320,h_200,c_fill,so_2/').replace(/\.[^.]+$/, '.jpg'); }
 
-let allLoaded   = []
-let categories  = {}
-let decisions   = {}
-let lastDoc     = null
-let batchSize   = 10
-let hasMore     = false
-
-const isCloud = url => url && (url.includes('res.cloudinary.com') || url.includes('cloudinary.com'))
-const thumb   = url => url.replace('/upload/', '/upload/w_320,h_200,c_fill,so_2/').replace(/\.[^.]+$/, '.jpg')
-
-window.selectNum = function(n) {
-  batchSize = n
-  document.querySelectorAll('.num-btn').forEach(b => b.classList.remove('selected'))
-  document.getElementById('btn-' + n)?.classList.add('selected')
-}
-window.selectNum(10)
-
-window.startLoad = async function() {
-  document.getElementById('setup').style.display  = 'none'
-  document.getElementById('loader').style.display = 'flex'
-  try {
-    const cSnap = await getDocs(collection(db, 'categories'))
-    cSnap.forEach(d => { categories[d.id] = d.data().name })
-    await fetchBatch()
-    document.getElementById('loader').style.display = 'none'
-    document.getElementById('app').style.display    = 'block'
-    render()
-  } catch(e) {
-    document.getElementById('loader').innerHTML = '<p style="color:#993C1D;font-size:16px;padding:20px">خطأ: ' + e.message + '</p>'
-  }
+function selectNum(n) {
+  batchSize = n;
+  var btns = document.querySelectorAll('.num-btn');
+  for (var i = 0; i < btns.length; i++) btns[i].classList.remove('selected');
+  var el = document.getElementById('btn-' + n);
+  if (el) el.classList.add('selected');
 }
 
-async function fetchBatch() {
-  let q
-  if (lastDoc) {
-    q = query(collection(db, 'questions'), where('type', '==', 'video'), startAfter(lastDoc), limit(batchSize * 3))
-  } else {
-    q = query(collection(db, 'questions'), where('type', '==', 'video'), limit(batchSize * 3))
-  }
-  const snap = await getDocs(q)
-  const filtered = snap.docs
-    .map(d => ({ id: d.id, _ref: d, ...d.data() }))
-    .filter(q => isCloud(q.mediaUrl) || (isCloud(q.answerMediaUrl) && q.answerMediaType === 'video'))
-    .slice(0, batchSize)
-
-  if (filtered.length > 0) lastDoc = filtered[filtered.length - 1]._ref
-  hasMore = snap.docs.length >= batchSize * 3
-
-  allLoaded = [...allLoaded, ...filtered]
+function startLoad() {
+  document.getElementById('setup').style.display  = 'none';
+  document.getElementById('loader').style.display = 'flex';
+  db.collection('categories').get().then(function(cSnap) {
+    cSnap.forEach(function(d) { categories[d.id] = d.data().name; });
+    return fetchBatch();
+  }).then(function() {
+    document.getElementById('loader').style.display = 'none';
+    document.getElementById('app').style.display    = 'block';
+    render();
+  }).catch(function(e) {
+    document.getElementById('loader').innerHTML = '<p style="color:#993C1D;font-size:16px;padding:20px">خطأ: ' + e.message + '</p>';
+  });
 }
 
-window.loadMore = async function() {
-  document.getElementById('more-btn').textContent = '⏳ جاري التحميل...'
-  await fetchBatch()
-  render()
+function fetchBatch() {
+  var q = db.collection('questions').where('type', '==', 'video').limit(batchSize * 3);
+  if (lastDoc) q = q.startAfter(lastDoc);
+  return q.get().then(function(snap) {
+    var filtered = snap.docs.filter(function(d) {
+      var data = d.data();
+      return isCloud(data.mediaUrl) || (isCloud(data.answerMediaUrl) && data.answerMediaType === 'video');
+    }).slice(0, batchSize);
+    filtered.forEach(function(d) {
+      var obj = d.data();
+      obj.id = d.id;
+      obj._ref = d;
+      allLoaded.push(obj);
+    });
+    if (filtered.length > 0) lastDoc = filtered[filtered.length - 1];
+    hasMore = snap.docs.length >= batchSize * 3;
+  });
+}
+
+function loadMore() {
+  document.getElementById('more-btn').textContent = '⏳ جاري التحميل...';
+  fetchBatch().then(function() { render(); });
 }
 
 function render() {
-  const c = document.getElementById('cards')
+  var c = document.getElementById('cards');
   if (allLoaded.length === 0) {
-    c.innerHTML = '<div class="empty"><div style="font-size:56px">🎉</div><p>ما في فيديوهات على Cloudinary!</p></div>'
-    document.getElementById('more-btn').style.display = 'none'
-    return
+    c.innerHTML = '<div class="empty"><div style="font-size:56px">🎉</div><p>ما في فيديوهات على Cloudinary!</p></div>';
+    document.getElementById('more-btn').style.display = 'none';
+    return;
   }
-  c.innerHTML = allLoaded.map(q => {
-    const hasQV = isCloud(q.mediaUrl)
-    const hasAV = isCloud(q.answerMediaUrl) && q.answerMediaType === 'video'
-    const dec   = decisions[q.id] || 'pending'
-    return `
-    <div class="card ${dec !== 'pending' ? dec : ''}" id="card-${q.id}">
-      <div class="cat">🏷️ ${categories[q.categoryId] || q.categoryId}</div>
-      <div class="grid2">
-        <div>
-          <div class="vlabel">🎬 فيديو السؤال</div>
-          ${hasQV
-            ? `<div class="thumb-wrap" onclick="openVideo('${q.mediaUrl}')"><img src="${thumb(q.mediaUrl)}" onerror="this.style.display='none'"><div class="play">▶</div></div>`
-            : `<div class="no-v">لا يوجد</div>`}
-        </div>
-        <div>
-          <div class="vlabel">✅ فيديو الجواب</div>
-          ${hasAV
-            ? `<div class="thumb-wrap" onclick="openVideo('${q.answerMediaUrl}')"><img src="${thumb(q.answerMediaUrl)}" onerror="this.style.display='none'"><div class="play">▶</div></div>`
-            : `<div class="no-v">لا يوجد</div>`}
-        </div>
-      </div>
-      <div class="grid2">
-        <div class="tbox"><div class="tbox-label">السؤال</div><div class="tbox-val">${q.content}</div></div>
-        <div class="tbox"><div class="tbox-label">الجواب</div><div class="tbox-val">${q.answer}</div></div>
-      </div>
-      <div class="actions">
-        <button class="btn-approve ${dec === 'approved' ? 'active' : ''}" onclick="decide('${q.id}','approved')">✅ موافق — ينتقل الفيديوين</button>
-        <button class="btn-reject ${dec === 'rejected' ? 'active' : ''}" onclick="decide('${q.id}','rejected')">❌ تجاهل</button>
-      </div>
-    </div>`
-  }).join('')
-
-  document.getElementById('more-btn').style.display = hasMore ? 'block' : 'none'
-  document.getElementById('more-btn').textContent = '⬇ حمّل المزيد'
-  updateStats()
+  var html = '';
+  for (var i = 0; i < allLoaded.length; i++) {
+    var q = allLoaded[i];
+    var hasQV = isCloud(q.mediaUrl);
+    var hasAV = isCloud(q.answerMediaUrl) && q.answerMediaType === 'video';
+    var dec = decisions[q.id] || 'pending';
+    html += '<div class="card ' + (dec !== 'pending' ? dec : '') + '" id="card-' + q.id + '">';
+    html += '<div class="cat">🏷️ ' + (categories[q.categoryId] || q.categoryId) + '</div>';
+    html += '<div class="grid2">';
+    html += '<div><div class="vlabel">🎬 فيديو السؤال</div>';
+    html += hasQV ? '<div class="thumb-wrap" onclick="openVideo(\'' + q.mediaUrl + '\')"><img src="' + thumb(q.mediaUrl) + '" onerror="this.style.display=\'none\'"><div class="play">▶</div></div>' : '<div class="no-v">لا يوجد</div>';
+    html += '</div>';
+    html += '<div><div class="vlabel">✅ فيديو الجواب</div>';
+    html += hasAV ? '<div class="thumb-wrap" onclick="openVideo(\'' + q.answerMediaUrl + '\')"><img src="' + thumb(q.answerMediaUrl) + '" onerror="this.style.display=\'none\'"><div class="play">▶</div></div>' : '<div class="no-v">لا يوجد</div>';
+    html += '</div>';
+    html += '</div>';
+    html += '<div class="grid2">';
+    html += '<div class="tbox"><div class="tbox-label">السؤال</div><div class="tbox-val">' + q.content + '</div></div>';
+    html += '<div class="tbox"><div class="tbox-label">الجواب</div><div class="tbox-val">' + q.answer + '</div></div>';
+    html += '</div>';
+    html += '<div class="actions">';
+    html += '<button class="btn-approve ' + (dec === 'approved' ? 'active' : '') + '" onclick="decide(\'' + q.id + '\',\'approved\')">✅ موافق — ينتقل الفيديوين</button>';
+    html += '<button class="btn-reject ' + (dec === 'rejected' ? 'active' : '') + '" onclick="decide(\'' + q.id + '\',\'rejected\')">❌ تجاهل</button>';
+    html += '</div>';
+    html += '</div>';
+  }
+  c.innerHTML = html;
+  document.getElementById('more-btn').style.display = hasMore ? 'block' : 'none';
+  document.getElementById('more-btn').textContent = '⬇ حمّل المزيد';
+  updateStats();
 }
 
-window.decide = function(id, dec) {
-  decisions[id] = dec
-  const card = document.getElementById('card-' + id)
-  card.className = 'card ' + (dec !== 'pending' ? dec : '')
-  card.querySelector('.btn-approve').className = 'btn-approve' + (dec === 'approved' ? ' active' : '')
-  card.querySelector('.btn-reject').className  = 'btn-reject'  + (dec === 'rejected' ? ' active' : '')
-  updateStats()
+function decide(id, dec) {
+  decisions[id] = dec;
+  var card = document.getElementById('card-' + id);
+  card.className = 'card ' + (dec !== 'pending' ? dec : '');
+  card.querySelector('.btn-approve').className = 'btn-approve' + (dec === 'approved' ? ' active' : '');
+  card.querySelector('.btn-reject').className  = 'btn-reject'  + (dec === 'rejected' ? ' active' : '');
+  updateStats();
 }
 
 function updateStats() {
-  const a = Object.values(decisions).filter(d => d === 'approved').length
-  const r = Object.values(decisions).filter(d => d === 'rejected').length
-  const p = allLoaded.length - a - r
-  document.getElementById('cnt-a').textContent = a
-  document.getElementById('cnt-r').textContent = r
-  document.getElementById('cnt-p').textContent = p
-  document.getElementById('migrate-btn').disabled = a === 0
-  document.getElementById('note').textContent = a > 0 ? `${a} سؤال — ${a * 2} فيديو جاهز` : 'راجع الأسئلة وأعطِ موافقتك'
+  var vals = Object.keys(decisions).map(function(k) { return decisions[k]; });
+  var a = vals.filter(function(d) { return d === 'approved'; }).length;
+  var r = vals.filter(function(d) { return d === 'rejected'; }).length;
+  var p = allLoaded.length - a - r;
+  document.getElementById('cnt-a').textContent = a;
+  document.getElementById('cnt-r').textContent = r;
+  document.getElementById('cnt-p').textContent = p;
+  document.getElementById('migrate-btn').disabled = a === 0;
+  document.getElementById('note').textContent = a > 0 ? (a + ' سؤال — ' + (a * 2) + ' فيديو جاهز') : 'راجع الأسئلة وأعطِ موافقتك';
 }
 
-window.openVideo = function(url) {
-  document.getElementById('modal-video').src = url
-  document.getElementById('modal').classList.add('open')
-}
-window.closeModal = function() {
-  document.getElementById('modal').classList.remove('open')
-  document.getElementById('modal-video').src = ''
+function openVideo(url) {
+  document.getElementById('modal-video').src = url;
+  document.getElementById('modal').classList.add('open');
 }
 
-async function migrateFile(url) {
-  const res  = await fetch(url)
-  if (!res.ok) throw new Error('فشل التنزيل')
-  const blob = await res.blob()
-  const parts = url.split('/')
-  const raw   = parts[parts.length - 1].split('?')[0]
-  const ext   = raw.split('.').pop() || 'mp4'
-  const base  = raw.replace(/\.[^.]+$/, '')
-  const name  = base + '_' + Date.now() + '.' + ext
-  const up = await fetch('https://storage.bunnycdn.com/' + BUNNY.zone + '/videos/' + name, {
-    method: 'PUT',
-    headers: { AccessKey: BUNNY.key, 'Content-Type': 'application/octet-stream' },
-    body: blob
-  })
-  if (!up.ok) throw new Error('فشل الرفع: ' + up.status)
-  return BUNNY.cdnUrl + '/videos/' + name
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  document.getElementById('modal-video').src = '';
 }
 
-window.startMigration = async function() {
-  const toMigrate = allLoaded.filter(q => decisions[q.id] === 'approved')
-  document.getElementById('migrate-btn').disabled = true
-  document.getElementById('log-box').style.display = 'block'
-  const logEl = document.getElementById('log-items')
-  logEl.innerHTML = toMigrate.map(function(q, i) {
-    return '<div class="log-item" id="log-' + i + '"><span id="log-ico-' + i + '">⏳</span><span class="log-id">' + q.id.substring(0, 24) + '...</span><span id="log-status-' + i + '" style="font-weight:700;color:#6B8AA8">معلق</span></div>'
-  }).join('')
+function migrateFile(url) {
+  return fetch(url).then(function(res) {
+    if (!res.ok) throw new Error('فشل التنزيل');
+    return res.blob();
+  }).then(function(blob) {
+    var parts = url.split('/');
+    var raw = parts[parts.length - 1].split('?')[0];
+    var ext = raw.split('.').pop() || 'mp4';
+    var base = raw.replace(/\.[^.]+$/, '');
+    var name = base + '_' + Date.now() + '.' + ext;
+    return fetch('https://storage.bunnycdn.com/' + BUNNY.zone + '/videos/' + name, {
+      method: 'PUT',
+      headers: { AccessKey: BUNNY.key, 'Content-Type': 'application/octet-stream' },
+      body: blob
+    }).then(function(up) {
+      if (!up.ok) throw new Error('فشل الرفع: ' + up.status);
+      return BUNNY.cdnUrl + '/videos/' + name;
+    });
+  });
+}
 
-  for (let i = 0; i < toMigrate.length; i++) {
-    const q = toMigrate[i]
-    document.getElementById('log-ico-' + i).textContent = '🔄'
-    document.getElementById('log-status-' + i).textContent = 'جاري...'
-    try {
-      const updates = {}
-      if (isCloud(q.mediaUrl)) updates.mediaUrl = await migrateFile(q.mediaUrl)
-      if (isCloud(q.answerMediaUrl) && q.answerMediaType === 'video') updates.answerMediaUrl = await migrateFile(q.answerMediaUrl)
-      await updateDoc(doc(db, 'questions', q.id), updates)
-      document.getElementById('log-ico-' + i).textContent = '✅'
-      document.getElementById('log-status-' + i).textContent = 'تم'
-      document.getElementById('log-status-' + i).style.color = '#0F6E56'
-    } catch(err) {
-      document.getElementById('log-ico-' + i).textContent = '❌'
-      document.getElementById('log-status-' + i).textContent = 'فشل: ' + err.message
-      document.getElementById('log-status-' + i).style.color = '#993C1D'
-    }
-    await new Promise(r => setTimeout(r, 200))
+function startMigration() {
+  var toMigrate = allLoaded.filter(function(q) { return decisions[q.id] === 'approved'; });
+  document.getElementById('migrate-btn').disabled = true;
+  document.getElementById('log-box').style.display = 'block';
+  var logHtml = '';
+  for (var j = 0; j < toMigrate.length; j++) {
+    logHtml += '<div class="log-item" id="log-' + j + '"><span id="log-ico-' + j + '">⏳</span><span class="log-id">' + toMigrate[j].id.substring(0, 24) + '...</span><span id="log-status-' + j + '" style="font-weight:700;color:#6B8AA8">معلق</span></div>';
   }
-  document.getElementById('migrate-btn').textContent = '✅ اكتمل النقل!'
+  document.getElementById('log-items').innerHTML = logHtml;
+
+  var i = 0;
+  function next() {
+    if (i >= toMigrate.length) {
+      document.getElementById('migrate-btn').textContent = '✅ اكتمل النقل!';
+      return;
+    }
+    var q = toMigrate[i];
+    document.getElementById('log-ico-' + i).textContent = '🔄';
+    document.getElementById('log-status-' + i).textContent = 'جاري...';
+    var updates = {};
+    var p = Promise.resolve();
+    if (isCloud(q.mediaUrl)) {
+      p = p.then(function() { return migrateFile(q.mediaUrl); }).then(function(url) { updates.mediaUrl = url; });
+    }
+    if (isCloud(q.answerMediaUrl) && q.answerMediaType === 'video') {
+      p = p.then(function() { return migrateFile(q.answerMediaUrl); }).then(function(url) { updates.answerMediaUrl = url; });
+    }
+    p.then(function() {
+      return db.collection('questions').doc(q.id).update(updates);
+    }).then(function() {
+      document.getElementById('log-ico-' + i).textContent = '✅';
+      document.getElementById('log-status-' + i).textContent = 'تم';
+      document.getElementById('log-status-' + i).style.color = '#0F6E56';
+      i++; setTimeout(next, 200);
+    }).catch(function(err) {
+      document.getElementById('log-ico-' + i).textContent = '❌';
+      document.getElementById('log-status-' + i).textContent = 'فشل: ' + err.message;
+      document.getElementById('log-status-' + i).style.color = '#993C1D';
+      i++; setTimeout(next, 200);
+    });
+  }
+  next();
 }
 </script>
 </body>
