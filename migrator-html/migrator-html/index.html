@@ -146,7 +146,10 @@ body { background: #EBF3FB; font-family: Tajawal, sans-serif; direction: rtl; co
     </div>
   </div>
   <div class="bottom-bar">
-    <span id="note" style="font-size:14px;color:#6B8AA8">راجع الأسئلة وأعطِ موافقتك</span>
+    <div style="display:flex;gap:10px;align-items:center">
+      <span id="note" style="font-size:14px;color:#6B8AA8">راجع الأسئلة وأعطِ موافقتك</span>
+      <button class="migrate-btn" style="border-color:#2B7DD4;background:#EBF3FB;color:#1A5FA0" onclick="fixMissingHttps()">🔧 إصلاح روابط ناقصة</button>
+    </div>
     <button class="migrate-btn" id="migrate-btn" disabled onclick="startMigration()">🚀 ابدأ النقل</button>
   </div>
 </div>
@@ -383,7 +386,7 @@ function migrateFile(url) {
       body: blob
     }).then(function(up) {
       if (!up.ok) throw new Error('فشل الرفع: ' + up.status);
-      return BUNNY.cdnUrl + '/videos/' + name;
+      return 'https://' + BUNNY.cdnUrl + '/videos/' + name;
     });
   });
 }
