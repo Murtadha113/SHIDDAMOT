@@ -1,12 +1,15 @@
 'use client'
 
 import AuthGate from '@/components/AuthGate'
-import { Upload, ListChecks, FolderTree, ArrowLeft } from 'lucide-react'
+import { Upload, ListChecks, FolderTree, ArrowLeft, Package, BarChart3, FileDown } from 'lucide-react'
 
 const TILES = [
   { href: '/questions/add', icon: Upload, title: 'رفع الأسئلة', desc: 'ملف CSV/Excel أو إدخال يدوي', color: 'var(--blue)', bg: 'var(--blue-soft)' },
   { href: '/questions', icon: ListChecks, title: 'مراجعة الأسئلة', desc: 'تصفّح وتعديل وحذف حسب الفئة', color: 'var(--green-dark)', bg: 'var(--green-soft)' },
   { href: '/categories', icon: FolderTree, title: 'الفئات', desc: 'إضافة وتعديل الفئات ومعاينتها', color: 'var(--amber)', bg: 'var(--amber-soft)' },
+  { href: '/majlis-categories', icon: Package, title: 'فئات المجلس', desc: 'تفعيل الفئات لوضع المجلس', color: 'var(--blue)', bg: 'var(--blue-soft)' },
+  { href: '/categories-status', icon: BarChart3, title: 'جاهزية الفئات', desc: 'كم لعبة تكفي كل فئة', color: 'var(--green-dark)', bg: 'var(--green-soft)' },
+  { href: '/export-pdf', icon: FileDown, title: 'تصدير PDF', desc: 'تصدير أسئلة الفئة لملف PDF عربي', color: 'var(--amber)', bg: 'var(--amber-soft)' },
 ]
 
 export default function Home() {
