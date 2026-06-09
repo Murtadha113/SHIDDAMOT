@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, User } from 'firebase/auth'
-import { auth, checkIsAdmin } from '@/lib/firebase'
+import { getAuthInstance, checkIsAdmin } from '@/lib/firebase'
 import { LogOut, User as UserIcon } from 'lucide-react'
 
 export default function AuthGate({ children }: { children: React.ReactNode }) {
@@ -15,7 +15,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
+    const unsub = onAuthStateChanged(getAuthInstance(), async (u) => {
       if (u) { setUser(u); setIsAdmin(await checkIsAdmin(u.uid)) }
       else { setUser(null); setIsAdmin(false) }
       setLoading(false)
@@ -27,7 +27,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     if (!email || !pass) { setErr('الرجاء إدخال الإيميل وكلمة المرور'); return }
     setBusy(true); setErr('')
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), pass)
+      await signInWithEmailAndPassword(getAuthInstance(), email.trim(), pass)
     } catch (e: any) {
       const c = e?.code || ''
       setErr(
@@ -84,7 +84,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
         <div className="text-5xl">🚫</div>
         <h2 className="text-xl font-black">ليس لديك صلاحية</h2>
         <p className="text-[var(--ink-soft)]">هذا الحساب ليس أدمن</p>
-        <button onClick={() => signOut(auth)}
+        <button onClick={() => signOut(getAuthInstance())}
           className="px-5 py-2.5 rounded-[10px] border border-[var(--border)] text-[var(--ink-soft)] hover:text-[var(--red)] transition-colors">
           تسجيل خروج
         </button>
@@ -100,7 +100,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
           <div className="hidden sm:flex items-center gap-1.5 bg-[var(--blue-soft)] rounded-full px-3.5 py-1.5 text-[13px] font-bold text-[var(--blue-dark)]">
             <UserIcon className="w-3.5 h-3.5" /> {user.email}
           </div>
-          <button onClick={() => signOut(auth)}
+          <button onClick={() => signOut(getAuthInstance())}
             className="flex items-center gap-1.5 text-[var(--ink-faint)] hover:text-[var(--red)] text-[13px] transition-colors px-2 py-1">
             <LogOut className="w-4 h-4" /> خروج
           </button>
