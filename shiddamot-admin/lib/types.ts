@@ -45,3 +45,12 @@ export const TYPE_LABEL: Record<Question['type'], string> = {
   audio: '🎵 صوت',
   video: '🎬 فيديو',
 }
+export interface Category {
+  id: string
+  name: string
+  imageUrl: string
+  order?: number
+  groupId?: string
+  isHidden?: boolean
+  isMajlis?: boolean
+}
