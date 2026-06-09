@@ -20,7 +20,6 @@ const firebaseConfig = {
 }
 
 // ═══ تهيئة كسولة (lazy) — تشتغل أول استخدام بالمتصفح فقط ═══
-// كذا ما تنفّذ وقت الـ build (prerender) ولا تطيح بسبب مفاتيح ناقصة.
 let _app: FirebaseApp | null = null
 let _auth: Auth | null = null
 let _db: Firestore | null = null
@@ -68,9 +67,16 @@ export async function addCategory(name: string, imageUrl = ''): Promise<string> 
 
 export async function updateCategory(
   id: string,
-  data: { name?: string; imageUrl?: string; isHidden?: boolean }
+  data: { name?: string; imageUrl?: string; isHidden?: boolean; isMajlis?: boolean }
 ): Promise<void> {
   await updateDoc(doc(db(), COL.categories, id), data)
+}
+
+// حفظ جماعي لحالة "فئة المجلس"
+export async function saveMajlisFlags(updates: { id: string; isMajlis: boolean }[]): Promise<void> {
+  const batch = writeBatch(db())
+  updates.forEach(u => batch.update(doc(db(), COL.categories, u.id), { isMajlis: u.isMajlis }))
+  await batch.commit()
 }
 
 export async function deleteCategory(id: string): Promise<void> {
@@ -95,6 +101,14 @@ export async function getQuestionsByCategory(categoryId: string): Promise<Questi
   const q = query(collection(db(), COL.questions), where('categoryId', '==', categoryId))
   const snap = await getDocs(q)
   return snap.docs.map(d => ({ id: d.id, ...d.data() } as Question))
+}
+
+// يُستخدم فقط لتقرير جاهزية الفئات (إجراء أدمن نادر، بضغطة زر)
+export async function getAllQuestions(): Promise<Question[]> {
+  try {
+    const snap = await getDocs(collection(db(), COL.questions))
+    return snap.docs.map(d => ({ id: d.id, ...d.data() } as Question))
+  } catch { return [] }
 }
 
 export async function addQuestion(question: Omit<Question, 'id'>): Promise<string> {
